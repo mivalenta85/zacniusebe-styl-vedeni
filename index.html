@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Styl vedení podle silných stránek · Začni u sebe</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    font-family: 'Poppins','Segoe UI',Arial,sans-serif;
+    background: #EFE9E0;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px 12px;
+  }
+  .app {
+    width: 100%;
+    max-width: 420px;
+    background: #FAF8F4;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(46,21,85,0.15);
+    min-height: 640px;
+    display: flex;
+    flex-direction: column;
+  }
+  #screen { flex: 1; display: flex; flex-direction: column; position: relative; }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1.5px solid #E2DCEE;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+  }
+  input:focus { border-color: #482683; }
+  button { font-family: inherit; cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  .straw {
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.22);
+    position: relative;
+    overflow: visible;
+  }
+  .strawFill {
+    height: 100%;
+    border-radius: 999px 0 0 999px;
+    background: linear-gradient(90deg, #a8d400, #CCFF00);
+    position: relative;
+    transition: width 0.4s ease;
+  }
+  .strawArrow {
+    position: absolute;
+    right: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 8px solid #CCFF00;
+    filter: drop-shadow(0 0 4px rgba(204,255,0,0.8));
+  }
+
+  .glassCard {
+    position: relative;
+    z-index: 2;
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 22px;
+    padding: 22px 20px;
+  }
+  .engraved {
+    color: rgba(255,255,255,0.94);
+    text-shadow: 0 1px 1px rgba(0,0,0,0.45), 0 -1px 0 rgba(255,255,255,0.14);
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    z-index: 1;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px 5px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .chipDot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .teaserBox {
+    margin-top: 6px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(193,149,82,0.14);
+    border: 1px solid rgba(193,149,82,0.5);
+  }
+  .errText { color: #A32D2D; font-size: 12.5px; margin: 2px 0 0; min-height: 16px; }
+</style>
+</head>
+<body>
+<div class="app"><div id="screen"></div></div>
+
+<script>
+/* ======================= KONFIGURACE ======================= */
+// Odkaz na rezervaci konzultace — uprav na skutečnou stránku/kalendář
+var KONZULTACE_URL = 'https://michalvalenta.cz';
+
+/* ======================= DATA OTÁZEK ======================= */
+// Doména: V = Vztahové, R = Realizační, S = Strategické, O = Ovlivňovací
+var questions = [
+  {q:"Na co se zaměříš jako první při novém projektu?", opts:[
+    {t:"Naladíš tým na to, proč do toho jít naplno", d:"O"},
+    {t:"Vyskládáš si, jak by měl vypadat výsledek za půl roku", d:"S"},
+    {t:"Rozepíšeš úkoly a termíny", d:"R"},
+    {t:"Na to, aby tým táhl za jeden provaz", d:"V"}]},
+  {q:"Jak řešíš konflikty ve svém týmu?", opts:[
+    {t:"Nastavíš jasná pravidla, ať je jasné, co se čeká", d:"R"},
+    {t:"Hledáš skutečnou příčinu, ne jen řešíš symptom", d:"S"},
+    {t:"Přesvědčíš strany, ať najdou společnou řeč", d:"O"},
+    {t:"Sedneš si s lidmi a necháš je říct si to na rovinu", d:"V"}]},
+  {q:"Jak motivuješ svůj tým k dosažení cílů?", opts:[
+    {t:"Ukážeš jim, kam tým směřuje a proč to dává smysl", d:"S"},
+    {t:"Zjednodušuješ jim práci, ať jsou produktivnější", d:"R"},
+    {t:"Naháníš je za čísly a výsledky", d:"O"},
+    {t:"Zajímáš se, jak se lidem v týmu daří", d:"V"}]},
+  {q:"Co tě nejvíc zajímá při přípravě velké iniciativy?", opts:[
+    {t:"Jak lidi zapálit, ať do toho jdou naplno", d:"O"},
+    {t:"Detailní plán, který sedí krok za krokem", d:"R"},
+    {t:"Jak to zapadá do dlouhodobé strategie", d:"S"},
+    {t:"Aby se v tom každý cítil součástí, ne jen divákem", d:"V"}]},
+  {q:"Co je pro tebe klíčové k dosažení úspěchu?", opts:[
+    {t:"Plán, který myslí dopředu, ne jen na tenhle měsíc", d:"S"},
+    {t:"Schopnost tým nadchnout a strhnout ho s sebou", d:"O"},
+    {t:"Procesy, které fungují i bez tvého dohledu", d:"R"},
+    {t:"Tým, na který se můžeš spolehnout", d:"V"}]},
+  {q:"Když čelíš výzvě, jaká je tvá první reakce?", opts:[
+    {t:"Svoláš tým a ujistíš se, že v tom nikdo není sám", d:"V"},
+    {t:"Rozepíšeš si kroky a hned se pustíš do řešení", d:"R"},
+    {t:"Namotivuješ tým, ať jde hned do akce", d:"O"},
+    {t:"Zastavíš se a hledáš, co za problémem skutečně stojí", d:"S"}]},
+  {q:"Podle čeho se rozhoduješ, když si nejsi jistý?", opts:[
+    {t:"Držíš se toho, co už osvědčeně funguje", d:"R"},
+    {t:"Přesvědčíš tým, ať jde tvým směrem", d:"O"},
+    {t:"Zvažuješ, kam se situace bude vyvíjet dál", d:"S"},
+    {t:"Řešíš, jak to ovlivní náladu a soudržnost týmu", d:"V"}]},
+  {q:"Jak komunikuješ se svým týmem?", opts:[
+    {t:"Dáváš konkrétní zadání – kdo, co, do kdy", d:"R"},
+    {t:"Preferuješ rozhovor mezi čtyřma očima", d:"V"},
+    {t:"Motivuješ tým na poradách nebo veřejně před ostatními", d:"O"},
+    {t:"Otevíráš diskuzi a chceš slyšet názory týmu", d:"S"}]},
+  {q:"Jak zavádíš nové nápady nebo změny v týmu?", opts:[
+    {t:"Necháš týmu čas si na to zvyknout", d:"V"},
+    {t:"Vysvětlíš, proč je změna potřeba a co přinese", d:"S"},
+    {t:"Rozepíšeš přesně, jak bude nový proces vypadat", d:"R"},
+    {t:"Přesvědčíš tým, ať do toho jde s tebou", d:"O"}]},
+  {q:"Co si na úspěšném projektu ceníš nejvíc?", opts:[
+    {t:"Že tým držel spolu i v těžkých chvílích", d:"V"},
+    {t:"Že jsi tým dokázal strhnout k lepšímu výkonu", d:"O"},
+    {t:"Že všechno klapalo podle plánu", d:"R"},
+    {t:"Rozhodnutí, která nakonec ukázala správný směr", d:"S"}]}
+];
+
+// Oficiální Gallup CliftonStrengths barvy domén
+var DOMENY = {
+  R: { nazev: "Realizační talenty", barva: "#712a7d" },
+  O: { nazev: "Ovlivňovací talenty", barva: "#da792d" },
+  V: { nazev: "Vztahové talenty",    barva: "#3a6ec6" },
+  S: { nazev: "Strategické talenty", barva: "#499262" }
+};
+
+var TEXTY_JEDNA = {
+  R: {
+    free: "Vedeš přes výsledky. Nápad je pro tebe začátek, ne cíl: zajímá tě, jak se dostane do praxe. Rozdáváš jasné úkoly, termíny a odpovědnost. Tým u tebe ví, kdo dělá co a dokdy.\n\nTvoje síla je spolehlivost. Věci se dělají, i když se nikdo nedívá.",
+    riziko: "Jedno z rizik: soustředíš se na to, co jde udělat hned, a ztratíš směr, kam to všechno vede. Potřebuješ vedle sebe někoho, kdo se ptá proč, ne jen jak."
+  },
+  O: {
+    free: "Vedeš přes energii. Umíš tým nadchnout a strhnout ho k akci: slova u tebe nezůstávají na papíře. Tam, kde jiní ještě přemýšlí, ty už mluvíš a hýbeš věcmi dopředu.\n\nTvoje síla je přesvědčivost. Lidé kolem tebe vědí, proč do něčeho jít naplno.",
+    riziko: "Jedno z rizik: energie bez směru unaví tým rychleji, než čekáš. Potřebuješ vedle sebe někoho, kdo tu energii ukotví v plánu, ne jen v náladě."
+  },
+  V: {
+    free: "Vedeš přes lidi. Než zadáš úkol, zajímá tě, jak se tvůj tým cítí a jestli táhne za jeden provaz. Konflikty neřešíš plošně: sedneš si s člověkem a necháš ho říct si to na rovinu.\n\nTvoje síla je důvěra. Tým u tebe ví, že v tom není sám.",
+    riziko: "Jedno z rizik: soudržnost týmu ti může začít vadit víc než jeho výkon. Potřebuješ vedle sebe někoho, kdo tě donutí rozhodnout i tehdy, když se to někomu nebude líbit."
+  },
+  S: {
+    free: "Vedeš přes směr. Než se pustíš do řešení, zastavíš se a hledáš, co je za problémem skutečně schované. Zajímá tě, kam věci povedou za půl roku, ne jen tenhle týden.\n\nTvoje síla je přehled. Tým u tebe ví, proč dělá to, co dělá.",
+    riziko: "Jedno z rizik: zůstaneš v hlavě déle, než tým unese. Potřebuješ vedle sebe někoho, kdo myšlenku dotáhne do kroku, který se dá udělat dnes."
+  }
+};
+
+var TEXTY_DVE = {
+  "R+O": { free: "Dotáhneš věci do konce a umíš k tomu strhnout lidi. Neplánuješ donekonečna: jdeš do akce a bereš tým s sebou.", riziko: "Jedno z rizik: tempo, které nastavíš, může být rychlejší, než tým zvládne vstřebat." },
+  "R+V": { free: "Věci se dělají a tým u toho zůstává pohromadě. Zadáváš jasně, ale nezapomínáš, jak se lidem daří.", riziko: "Jedno z rizik: ohled na vztahy ti může brzdit rozhodnutí, která je potřeba udělat rychle." },
+  "R+S": { free: "Máš plán a umíš ho dotáhnout do konce. Než se pustíš do práce, víš, kam vede, a pak to i uděláš.", riziko: "Jedno z rizik: dokud plán nesedí do detailu, těžko se pouštíš do akce." },
+  "O+V": { free: "Umíš lidi nadchnout a zároveň jim rozumíš. Tým tě následuje, protože cítí, že mu věříš.", riziko: "Jedno z rizik: chceš mít na palubě všechny, a rozhodnutí se pak zdržuje na hledání shody." },
+  "O+S": { free: "Víš, kam jít, a umíš do toho tým strhnout. Vize u tebe nezůstává v hlavě, rovnou ji prodáváš.", riziko: "Jedno z rizik: nadšení pro směr může předběhnout otázku, jestli je vůbec reálný." },
+  "V+S": { free: "Přemýšlíš dopředu a zároveň cítíš, co tým unese. Rozhodnutí u tebe zvažuje lidi i směr zároveň.", riziko: "Jedno z rizik: hledání správného tempa pro všechny tě může zpomalit ve chvíli, kdy je potřeba jednat." }
+};
+
+var TEXT_FLEXIBILITA = "Tvoje odpovědi se rozložily rovnoměrně mezi víc oblastí. Nemáš jednu výraznou oporu ve vedení, přepínáš mezi přístupy podle situace.\n\nNení to slabina. Je to jiný typ síly: flexibilita tam, kde jiní mají jeden pevný bod.";
+
+var PRIORITA = ["R","O","V","S"];
+var VIOLET = "#482683", VIOLET_DARK = "#2E1555", GOLD = "#C19552", MUTED = "#7A6D8A";
+var state = { step: 0, jmeno: "", klic: "", answers: [], shuffled: [], lastNav: 'forward' };
+var root = document.getElementById("screen");
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function nl2p(s){ return s.split("\n\n").map(function(p){ return '<p style="margin:0 0 10px;">'+esc(p)+'</p>'; }).join(''); }
+
+function shuffle(arr){
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+/* ======================= API VOLÁNÍ ======================= */
+function overitKod(klic){
+  return fetch('/api/overit-kod', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ klic: klic })
+  }).then(function(r){ return r.json(); });
+}
+
+function odeslatVysledky(klic, jmeno, odpovedi){
+  return fetch('/api/vysledky', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ klic: klic, jmeno: jmeno, odpovedi: odpovedi })
+  }).then(function(r){ return r.json(); }).catch(function(err){
+    console.error('Odeslání výsledků selhalo', err);
+  });
+}
+
+/* ======================= OBRAZOVKY ======================= */
+function renderIntro(){
+  root.innerHTML =
+    '<div style="background:'+VIOLET+';padding:32px 24px 26px;color:#fff;">' +
+      '<p style="font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:'+GOLD+';font-weight:600;margin:0 0 10px;">Začni u sebe</p>' +
+      '<h1 style="font-size:19px;margin:0 0 10px;color:#fff;font-weight:500;">Objevte svůj styl vedení</h1>' +
+      '<p style="font-size:13px;color:#fff;opacity:0.78;margin:0;line-height:1.65;">Nestaneš se lepším lídrem kopírováním někoho jiného. Staneš se jím tím, že poznáš, co ti přirozeně jde.</p>' +
+    '</div>' +
+    '<div style="padding:22px 24px;flex:1;display:flex;flex-direction:column;gap:12px;">' +
+      '<p style="font-size:12.5px;color:'+MUTED+';line-height:1.6;margin:0 0 4px;">U každé z 10 otázek vyber odpověď, která nejvíc odpovídá tomu, jak se skutečně chováš – ne jak bys měl.</p>' +
+      '<label style="font-size:12px;color:'+MUTED+';font-weight:600;">Jméno a příjmení</label>' +
+      '<input id="jmenoInput" type="text" placeholder="Jana Nováková" />' +
+      '<label style="font-size:12px;color:'+MUTED+';font-weight:600;margin-top:6px;">Přístupový kód</label>' +
+      '<input id="kodInput" type="text" placeholder="ZUS-LEAD-XXXX" />' +
+      '<p class="errText" id="introErr"></p>' +
+      '<div style="flex:1;"></div>' +
+      '<button id="startBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:'+GOLD+';color:#1C1C1C;font-size:14px;font-weight:600;">Začít dotazník</button>' +
+      '<p style="font-size:11px;color:'+MUTED+';text-align:center;margin:4px 0 0;">Trvá asi 10 minut</p>' +
+    '</div>';
+
+  document.getElementById("startBtn").onclick = function(){
+    var jmenoVal = document.getElementById("jmenoInput").value.trim();
+    var kodVal = document.getElementById("kodInput").value.trim();
+    var errEl = document.getElementById("introErr");
+    var btn = document.getElementById("startBtn");
+    errEl.textContent = '';
+
+    if (!jmenoVal) { errEl.textContent = 'Vyplň prosím jméno a příjmení.'; return; }
+    if (!kodVal) { errEl.textContent = 'Vyplň prosím přístupový kód.'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Ověřuji kód…';
+
+    overitKod(kodVal).then(function(res){
+      if (!res.valid) {
+        btn.disabled = false;
+        btn.textContent = 'Začít dotazník';
+        errEl.textContent = res.error || 'Neplatný kód.';
+        return;
+      }
+      state.jmeno = jmenoVal;
+      state.klic = kodVal;
+      state.step = 1;
+      state.shuffled = questions.map(function(q){ return shuffle(q.opts); });
+      render();
+    }).catch(function(){
+      btn.disabled = false;
+      btn.textContent = 'Začít dotazník';
+      errEl.textContent = 'Chyba spojení, zkus to prosím znovu.';
+    });
+  };
+}
+
+function renderQuestion(idx){
+  var total = questions.length;
+  var data = questions[idx - 1];
+  var opts = state.shuffled[idx - 1];
+  var pct = Math.round(((idx - 1) / total) * 100);
+  var selected = (state.lastNav === 'back') ? state.answers[idx - 1] : null;
+
+  var optsHtml = opts.map(function(opt){
+    var isSel = selected === opt.d;
+    return '<button class="optBtn" data-d="'+opt.d+'" style="width:100%;text-align:left;padding:14px 16px;margin-bottom:10px;border-radius:12px;border:1.5px solid #E2DCEE;background:#fff;font-size:13.5px;line-height:1.5;color:#1C1C1C;display:flex;align-items:flex-start;gap:10px;">' +
+      '<span class="dot" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;border:1.5px solid '+(isSel ? '#1C1C1C' : '#C9C1D9')+';background:'+(isSel ? '#1C1C1C' : 'transparent')+';margin-top:1px;"></span>' +
+      '<span>'+esc(opt.t)+'</span>' +
+    '</button>';
+  }).join('');
+
+  root.innerHTML =
+    '<div style="background:'+VIOLET+';padding:20px 24px 22px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+        (idx > 1 ? '<button id="backBtn" style="border:none;background:none;color:rgba(255,255,255,0.7);font-size:12px;padding:0;">← Zpět</button>' : '<span></span>') +
+        '<span style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:600;">Otázka '+idx+' z '+total+'</span>' +
+      '</div>' +
+      '<div class="straw"><div class="strawFill" style="width:'+pct+'%;"><div class="strawArrow"></div></div></div>' +
+    '</div>' +
+    '<div style="padding:22px 24px 4px;">' +
+      '<p style="font-size:17px;font-weight:500;color:#1C1C1C;margin:0 0 20px;line-height:1.5;">'+esc(data.q)+'</p>' +
+    '</div>' +
+    '<div style="padding:0 24px 24px;flex:1;">' + optsHtml + '</div>';
+
+  if (idx > 1) {
+    document.getElementById("backBtn").onclick = function(){ state.lastNav = 'back'; state.step = idx - 1; render(); };
+  }
+  var locked = false;
+  Array.prototype.forEach.call(document.querySelectorAll(".optBtn"), function(btn){
+    btn.onclick = function(){
+      if (locked) return;
+      locked = true;
+      state.answers[idx - 1] = btn.getAttribute("data-d");
+      var dot = btn.querySelector('.dot');
+      if (dot) { dot.style.border = '1.5px solid #1C1C1C'; dot.style.background = '#1C1C1C'; }
+      setTimeout(function(){
+        state.lastNav = 'forward';
+        if (idx === total) {
+          odeslatVysledky(state.klic, state.jmeno, state.answers);
+          state.step = total + 1;
+        } else {
+          state.step = idx + 1;
+        }
+        render();
+      }, 280);
+    };
+  });
+}
+
+function chip(k){
+  var info = DOMENY[k];
+  return '<span class="chip" style="background:'+info.barva+'22;color:#fff;border:1px solid '+info.barva+'88;">' +
+    '<span class="chipDot" style="background:'+info.barva+';"></span>' + info.nazev + '</span>';
+}
+
+function teaser(text){
+  return '<div class="teaserBox">' +
+    '<div style="color:rgba(255,255,255,0.92);font-size:13px;line-height:1.65;margin-bottom:10px;">'+esc(text)+'</div>' +
+    '<p style="font-size:12px;color:rgba(255,255,255,0.75);margin:0 0 10px;line-height:1.6;">Tohle je jen jedno riziko tvého stylu. Další a jak s nimi pracovat probereme spolu na konzultaci.</p>' +
+    '<a href="'+KONZULTACE_URL+'" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none;padding:9px 18px;border-radius:999px;background:'+GOLD+';color:#1C1C1C;font-size:12.5px;font-weight:600;">Domluvit konzultaci</a>' +
+  '</div>';
+}
+
+function renderDashboard(){
+  var counts = { V: 0, R: 0, S: 0, O: 0 };
+  state.answers.forEach(function(d){ counts[d] = (counts[d] || 0) + 1; });
+  var order = PRIORITA.slice().sort(function(a,b){ return counts[b] - counts[a]; });
+  var maxCount = counts[order[0]];
+  var top = PRIORITA.filter(function(k){ return counts[k] === maxCount; });
+
+  var blobsHtml = '';
+  if (top.length === 1) {
+    var c = DOMENY[top[0]].barva;
+    blobsHtml = '<div class="blob" style="width:300px;height:300px;background:'+c+';opacity:0.9;top:-90px;left:50%;transform:translateX(-50%);"></div>';
+  } else if (top.length === 2) {
+    blobsHtml =
+      '<div class="blob" style="width:240px;height:240px;background:'+DOMENY[top[0]].barva+';opacity:0.85;top:-70px;left:38%;transform:translateX(-50%);"></div>' +
+      '<div class="blob" style="width:240px;height:240px;background:'+DOMENY[top[1]].barva+';opacity:0.85;top:-70px;left:62%;transform:translateX(-50%);"></div>';
+  } else {
+    blobsHtml = top.map(function(k, i){
+      var angle = (i / top.length) * 360;
+      var x = 50 + 26 * Math.cos(angle * Math.PI / 180);
+      return '<div class="blob" style="width:190px;height:190px;background:'+DOMENY[k].barva+';opacity:0.75;top:-60px;left:'+x+'%;transform:translateX(-50%);"></div>';
+    }).join('');
+  }
+
+  var content = '';
+  if (top.length === 1) {
+    var k = top[0];
+    content =
+      '<p class="engraved" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 10px;opacity:0.8;">Vedeš především skrze</p>' +
+      chip(k) +
+      '<div style="color:rgba(255,255,255,0.9);font-size:13.5px;line-height:1.75;margin-top:16px;">' + nl2p(TEXTY_JEDNA[k].free) + '</div>' +
+      teaser(TEXTY_JEDNA[k].riziko);
+  } else if (top.length === 2) {
+    var key = PRIORITA.filter(function(x){ return top.indexOf(x) !== -1; }).join('+');
+    var pair = TEXTY_DVE[key] || { free: '', riziko: '' };
+    content =
+      '<p class="engraved" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 10px;opacity:0.8;">Vedeš skrze kombinaci</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + top.map(chip).join('') + '</div>' +
+      '<div style="color:rgba(255,255,255,0.9);font-size:13.5px;line-height:1.75;margin-top:16px;">' + nl2p(pair.free) + '</div>' +
+      teaser(pair.riziko);
+  } else {
+    content =
+      '<p class="engraved" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 10px;opacity:0.8;">Výsledek</p>' +
+      '<h2 class="engraved" style="font-size:18px;font-weight:500;margin:0 0 12px;">Tvůj styl je vyrovnaný</h2>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">' + top.map(chip).join('') + '</div>' +
+      '<div style="color:rgba(255,255,255,0.9);font-size:13.5px;line-height:1.75;">' + nl2p(TEXT_FLEXIBILITA) + '</div>';
+  }
+
+  root.innerHTML =
+    '<div style="position:relative;background:'+VIOLET_DARK+';flex:1;overflow:hidden;padding:26px 18px;display:flex;flex-direction:column;">' +
+      blobsHtml +
+      '<div class="glassCard">' + content + '</div>' +
+      '<p style="position:relative;z-index:2;font-size:11px;color:rgba(255,255,255,0.5);text-align:center;margin:16px 0 0;line-height:1.6;">michalvalenta.cz</p>' +
+    '</div>';
+}
+
+function render(){
+  if (state.step === 0) renderIntro();
+  else if (state.step >= 1 && state.step <= questions.length) renderQuestion(state.step);
+  else renderDashboard();
+}
+render();
+</script>
+</body>
+</html>
