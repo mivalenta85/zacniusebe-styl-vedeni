@@ -133,11 +133,40 @@ module.exports = async (req, res) => {
     const { counts, top } = vyhodnotDomeny(odpovedi);
     const topNazvy = top.map(k => DOMENY_NAZVY[k]).join(' + ');
 
-    const radky = PLATNE_DOMENY
-      .slice()
-      .sort((a, b) => counts[b] - counts[a])
-      .map(k => `${DOMENY_NAZVY[k]}: ${counts[k]}/10${top.indexOf(k) !== -1 ? ' ★' : ''}`)
-      .join('<br>');
+    // Oficiální Gallup CliftonStrengths barvy domén
+    const DOMENY_BARVY = { R: '#712a7d', O: '#da792d', V: '#3a6ec6', S: '#499262' };
+
+    const serazeneDomeny = PLATNE_DOMENY.slice().sort((a, b) => counts[b] - counts[a]);
+
+    const radkyHTML = serazeneDomeny.map(k => {
+      const isTop = top.indexOf(k) !== -1;
+      const barva = DOMENY_BARVY[k];
+      const pct = Math.round((counts[k] / 10) * 100);
+      return `
+        <tr>
+          <td style="padding:6px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="font-size:13px;font-weight:${isTop ? '600' : '400'};color:#1C1C1C;padding-bottom:4px;">
+                  ${isTop ? '★ ' : ''}${escapeHtml(DOMENY_NAZVY[k])}
+                </td>
+                <td align="right" style="font-size:12px;color:#7A6D8A;padding-bottom:4px;">${counts[k]}/10</td>
+              </tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="height:8px;background:#EDE6DC;border-radius:6px;">
+              <tr>
+                <td style="width:${pct}%;background:${barva};border-radius:6px;height:8px;font-size:0;line-height:0;">&nbsp;</td>
+                <td style="font-size:0;line-height:0;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>`;
+    }).join('');
+
+    const topChipy = top.map(k => `
+      <span style="display:inline-block;padding:6px 14px 6px 10px;margin:0 6px 6px 0;border-radius:999px;background:${DOMENY_BARVY[k]}22;border:1px solid ${DOMENY_BARVY[k]};font-size:13px;font-weight:600;color:#1C1C1C;">
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${DOMENY_BARVY[k]};margin-right:6px;"></span>${escapeHtml(DOMENY_NAZVY[k])}
+      </span>`).join('');
 
     const htmlBody = `
       <div style="font-family:'Poppins','Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;color:#1C1C1C;">
@@ -146,8 +175,15 @@ module.exports = async (req, res) => {
           <h1 style="font-size:20px;margin:0;color:#ffffff;">${escapeHtml(cleanJmeno)}</h1>
           <p style="font-size:13px;color:#ffffff;opacity:0.7;margin:6px 0 0;">${escapeHtml(now)}</p>
         </div>
-        <p style="font-size:14px;color:#1C1C1C;margin:0 0 10px;"><strong>Nejsilnější:</strong> ${escapeHtml(topNazvy)}</p>
-        <p style="font-size:13px;color:#4A4258;line-height:1.8;margin:0 0 16px;">${radky}</p>
+
+        <p style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7A6D8A;margin:0 0 8px;">Nejsilnější</p>
+        <div style="margin-bottom:20px;">${topChipy}</div>
+
+        <p style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7A6D8A;margin:0 0 10px;">Rozložení odpovědí</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+          ${radkyHTML}
+        </table>
+
         <p style="font-size:12px;color:#7A6D8A;margin:0;">Kód: ${escapeHtml(cleanKlic)}</p>
       </div>`;
 
