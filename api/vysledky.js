@@ -9,6 +9,42 @@ const KOD_PREFIX = 'ZUS-LEAD-';
 const DOMENY_NAZVY = { R: 'Realizační talenty', O: 'Ovlivňovací talenty', V: 'Vztahové talenty', S: 'Strategické talenty' };
 const PLATNE_DOMENY = ['R', 'O', 'V', 'S'];
 
+// Stejné texty jako v aplikaci (index.html) — ať Michal v emailu vidí přesně to,
+// co viděl klient na výsledkové obrazovce.
+const TEXTY_JEDNA = {
+  R: {
+    free: "Vedeš přes výsledky. Nápad je pro tebe začátek, ne cíl: zajímá tě, jak se dostane do praxe. Rozdáváš jasné úkoly, termíny a odpovědnost. Tým u tebe ví, kdo dělá co a dokdy.\n\nTvoje síla je spolehlivost. Věci se dělají, i když se nikdo nedívá.",
+    riziko: "Jedno z rizik: soustředíš se na to, co jde udělat hned, a ztratíš směr, kam to všechno vede. Potřebuješ vedle sebe někoho, kdo se ptá proč, ne jen jak."
+  },
+  O: {
+    free: "Vedeš přes energii. Umíš tým nadchnout a strhnout ho k akci: slova u tebe nezůstávají na papíře. Tam, kde jiní ještě přemýšlí, ty už mluvíš a hýbeš věcmi dopředu.\n\nTvoje síla je přesvědčivost. Lidé kolem tebe vědí, proč do něčeho jít naplno.",
+    riziko: "Jedno z rizik: energie bez směru unaví tým rychleji, než čekáš. Potřebuješ vedle sebe někoho, kdo tu energii ukotví v plánu, ne jen v náladě."
+  },
+  V: {
+    free: "Vedeš přes lidi. Než zadáš úkol, zajímá tě, jak se tvůj tým cítí a jestli táhne za jeden provaz. Konflikty neřešíš plošně: sedneš si s člověkem a necháš ho říct si to na rovinu.\n\nTvoje síla je důvěra. Tým u tebe ví, že v tom není sám.",
+    riziko: "Jedno z rizik: soudržnost týmu ti může začít vadit víc než jeho výkon. Potřebuješ vedle sebe někoho, kdo tě donutí rozhodnout i tehdy, když se to někomu nebude líbit."
+  },
+  S: {
+    free: "Vedeš přes směr. Než se pustíš do řešení, zastavíš se a hledáš, co je za problémem skutečně schované. Zajímá tě, kam věci povedou za půl roku, ne jen tenhle týden.\n\nTvoje síla je přehled. Tým u tebe ví, proč dělá to, co dělá.",
+    riziko: "Jedno z rizik: zůstaneš v hlavě déle, než tým unese. Potřebuješ vedle sebe někoho, kdo myšlenku dotáhne do kroku, který se dá udělat dnes."
+  }
+};
+
+const TEXTY_DVE = {
+  "R+O": { free: "Dotáhneš věci do konce a umíš k tomu strhnout lidi. Neplánuješ donekonečna: jdeš do akce a bereš tým s sebou.", riziko: "Jedno z rizik: tempo, které nastavíš, může být rychlejší, než tým zvládne vstřebat." },
+  "R+V": { free: "Věci se dělají a tým u toho zůstává pohromadě. Zadáváš jasně, ale nezapomínáš, jak se lidem daří.", riziko: "Jedno z rizik: ohled na vztahy ti může brzdit rozhodnutí, která je potřeba udělat rychle." },
+  "R+S": { free: "Máš plán a umíš ho dotáhnout do konce. Než se pustíš do práce, víš, kam vede, a pak to i uděláš.", riziko: "Jedno z rizik: dokud plán nesedí do detailu, těžko se pouštíš do akce." },
+  "O+V": { free: "Umíš lidi nadchnout a zároveň jim rozumíš. Tým tě následuje, protože cítí, že mu věříš.", riziko: "Jedno z rizik: chceš mít na palubě všechny, a rozhodnutí se pak zdržuje na hledání shody." },
+  "O+S": { free: "Víš, kam jít, a umíš do toho tým strhnout. Vize u tebe nezůstává v hlavě, rovnou ji prodáváš.", riziko: "Jedno z rizik: nadšení pro směr může předběhnout otázku, jestli je vůbec reálný." },
+  "V+S": { free: "Přemýšlíš dopředu a zároveň cítíš, co tým unese. Rozhodnutí u tebe zvažuje lidi i směr zároveň.", riziko: "Jedno z rizik: hledání správného tempa pro všechny tě může zpomalit ve chvíli, kdy je potřeba jednat." }
+};
+
+const TEXT_FLEXIBILITA = "Tvoje odpovědi se rozložily rovnoměrně mezi víc oblastí. Nemáš jednu výraznou oporu ve vedení, přepínáš mezi přístupy podle situace.\n\nNení to slabina. Je to jiný typ síly: flexibilita tam, kde jiní mají jeden pevný bod.";
+
+function nl2pEmail(text) {
+  return text.split('\n\n').map(p => `<p style="margin:0 0 10px;">${escapeHtml(p)}</p>`).join('');
+}
+
 function escapeHtml(value = '') {
   return String(value)
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -168,6 +204,21 @@ module.exports = async (req, res) => {
         <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${DOMENY_BARVY[k]};margin-right:6px;"></span>${escapeHtml(DOMENY_NAZVY[k])}
       </span>`).join('');
 
+    // === TEXT, KTERÝ VIDĚL KLIENT NA VÝSLEDKOVÉ OBRAZOVCE ===
+    let klientskyTextHTML = '';
+    if (top.length === 1) {
+      const t = TEXTY_JEDNA[top[0]];
+      klientskyTextHTML = nl2pEmail(t.free) + `<p style="margin:12px 0 0;padding:12px 14px;background:#FBF0DC;border-radius:10px;font-size:13px;color:#4A4258;">${escapeHtml(t.riziko)}</p>`;
+    } else if (top.length === 2) {
+      const key = PLATNE_DOMENY.filter(x => top.indexOf(x) !== -1).join('+');
+      const t = TEXTY_DVE[key];
+      if (t) {
+        klientskyTextHTML = nl2pEmail(t.free) + `<p style="margin:12px 0 0;padding:12px 14px;background:#FBF0DC;border-radius:10px;font-size:13px;color:#4A4258;">${escapeHtml(t.riziko)}</p>`;
+      }
+    } else {
+      klientskyTextHTML = nl2pEmail(TEXT_FLEXIBILITA);
+    }
+
     const htmlBody = `
       <div style="font-family:'Poppins','Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;color:#1C1C1C;">
         <div style="background:linear-gradient(135deg,#2E1555,#482683);padding:24px;border-radius:16px;color:#ffffff;margin-bottom:20px;">
@@ -178,6 +229,9 @@ module.exports = async (req, res) => {
 
         <p style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7A6D8A;margin:0 0 8px;">Nejsilnější</p>
         <div style="margin-bottom:20px;">${topChipy}</div>
+
+        <p style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7A6D8A;margin:0 0 10px;">Co viděl klient na obrazovce</p>
+        <div style="font-size:13.5px;line-height:1.7;color:#1C1C1C;margin-bottom:20px;">${klientskyTextHTML}</div>
 
         <p style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7A6D8A;margin:0 0 10px;">Rozložení odpovědí</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
